@@ -1,0 +1,55 @@
+{
+  "curso": {
+    "id": "202W1001",
+    "nombre": "Analítica de Datos",
+    "carrera": "Ingeniería de Software"
+  },
+  "competencias": [
+    {
+      "codigo": "CT12.3",
+      "descripcion": "Implementa soluciones de software para la toma de decisiones gerenciales utilizando las metodologías y estándares internacionales de calidad y de la ciencia de los datos con una actitud ética y responsabilidad social.",
+      "tipo": "técnica",
+      "nivel": "avanzado"
+    }
+  ],
+  "logros": [
+    {
+      "codigo": "CT12.3-RA1",
+      "descripcion": "Entiende los principios clave de la analítica de datos, enfrentando desafíos típicos del entorno masivo de datos.",
+      "codigo_competencia": "CT12.3"
+    },
+    {
+      "codigo": "CT12.3-RA2",
+      "descripcion": "Aplica técnicas estadísticas descriptivas e inferenciales, así como desarrolla modelos predictivos.",
+      "codigo_competencia": "CT12.3"
+    },
+    {
+      "codigo": "CT12.3-RA3",
+      "descripcion": "Desarrolla modelos prescriptivos integrando las mejores prácticas de modelado analítico.",
+      "codigo_competencia": "CT12.3"
+    },
+    {
+      "codigo": "CT12.3-RA4",
+      "descripcion": "Comprende las consideraciones éticas en el manejo de datos, visualiza y presenta resultados analíticos.",
+      "codigo_competencia": "CT12.3"
+    }
+  ],
+  "capacidades": [
+    {
+      "codigo": "CT12.3-CAP1",
+      "descripcion": "Fundamentos de la Analítica de Datos y Técnicas Predictivas.",
+      "unidad_aprendizaje": "Unidad I"
+    },
+    {
+      "codigo": "CT12.3-CAP2",
+      "descripcion": "Técnicas Prescriptivas, Ética y Visualización de Datos.",
+      "unidad_aprendizaje": "Unidad II"
+    }
+  ],
+  "logro_capacidades": [
+    { "codigo_logro": "CT12.3-RA1", "codigo_capacidad": "CT12.3-CAP1" },
+    { "codigo_logro": "CT12.3-RA2", "codigo_capacidad": "CT12.3-CAP1" },
+    { "codigo_logro": "CT12.3-RA3", "codigo_capacidad": "CT12.3-CAP2" },
+    { "codigo_logro": "CT12.3-RA4", "codigo_capacidad": "CT12.3-CAP2" }
+  ]
+}

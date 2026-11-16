@@ -1,0 +1,12 @@
+# env
+.venv/
+
+# python
+__pycache__/
+*.pyc
+
+# generated
+data/seed.sqlite
+
+# documentation
+docs/

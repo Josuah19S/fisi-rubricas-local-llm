@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fisi.local/schemas/curso.schema.json",
+  "title": "RegistroCurso",
+  "description": "Registro académico normalizado de un curso. Capacidad <-> Logro es muchos-a-muchos via 'logro_capacidades'. Unicidad de 'codigo' por colección e integridad referencial se validan en db.py (no expresables en JSON Schema para propiedades anidadas). Vocabularios de 'tipo', 'nivel' y 'unidad_aprendizaje' son provisionales (por validar con la FISI).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["curso", "competencias", "logros", "capacidades", "logro_capacidades"],
+  "properties": {
+    "curso": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "nombre", "carrera"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9-]+$" },
+        "nombre": { "type": "string", "minLength": 3 },
+        "carrera": { "type": "string", "minLength": 3 }
+      }
+    },
+    "competencias": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["codigo", "descripcion", "tipo", "nivel"],
+        "properties": {
+          "codigo": { "type": "string", "pattern": "^[A-Za-z0-9.-]+$" },
+          "descripcion": { "type": "string", "minLength": 5 },
+          "tipo": { "type": "string", "minLength": 3, "description": "Provisional/TBD (p. ej. general, específica, técnica)." },
+          "nivel": { "type": "string", "minLength": 3, "description": "Provisional/TBD (p. ej. básico, intermedio, avanzado)." }
+        }
+      }
+    },
+    "logros": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["codigo", "descripcion", "codigo_competencia"],
+        "properties": {
+          "codigo": { "type": "string", "pattern": "^[A-Za-z0-9.-]+$" },
+          "descripcion": { "type": "string", "minLength": 5 },
+          "codigo_competencia": { "type": "string", "pattern": "^[A-Za-z0-9.-]+$" }
+        }
+      }
+    },
+    "capacidades": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["codigo", "descripcion", "unidad_aprendizaje"],
+        "properties": {
+          "codigo": { "type": "string", "pattern": "^[A-Za-z0-9.-]+$" },
+          "descripcion": { "type": "string", "minLength": 5 },
+          "unidad_aprendizaje": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "logro_capacidades": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["codigo_logro", "codigo_capacidad"],
+        "properties": {
+          "codigo_logro": { "type": "string", "pattern": "^[A-Za-z0-9.-]+$" },
+          "codigo_capacidad": { "type": "string", "pattern": "^[A-Za-z0-9.-]+$" }
+        }
+      }
+    }
+  }
+}

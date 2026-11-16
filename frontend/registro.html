@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registro — Rúbricas FISI</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header>
+    <h1>Rúbricas FISI</h1>
+    <nav><a href="/">Registro</a><a href="/generar.html">Generar</a></nav>
+  </header>
+  <main>
+    <section>
+      <div class="field">
+        <label for="curso">Curso</label>
+        <select id="curso"></select>
+      </div>
+      <div id="arbol"></div>
+    </section>
+
+    <section>
+      <h2>Agregar (solo sesión, no se guarda)</h2>
+      <div class="field">
+        <label>Entidad</label>
+        <select id="entidad">
+          <option value="competencias">Competencia</option>
+          <option value="logros">Logro</option>
+          <option value="capacidades">Capacidad</option>
+        </select>
+      </div>
+      <div class="field"><label>Código</label><input id="codigo" placeholder="p. ej. C-XX-01"></div>
+      <div class="field"><label>Descripción</label><input id="descripcion" placeholder="descripción"></div>
+      <div class="field"><label>Ref. (codigo_competencia / codigo_logro)</label><input id="ref" placeholder="opcional"></div>
+      <div class="field"><label>Unidad (solo capacidad)</label><input id="unidad" placeholder="Unidad I"></div>
+      <button id="add">Agregar</button>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+  <script>
+    async function loadArbol() {
+      const id = $("#curso").value;
+      if (!id) return;
+      const a = await api(`/api/v1/cursos/${id}/arbol`);
+      let html = `<h2>${a.nombre} · ${a.carrera}</h2>`;
+      for (const c of a.competencias) {
+        html += `<div class="comp"><strong>${c.codigo}</strong> — ${c.descripcion} <em>(${c.tipo}, ${c.nivel})</em>`;
+        for (const l of c.logros) {
+          html += `<div class="logro"><strong>${l.codigo}</strong> — ${l.descripcion}`;
+          for (const cap of l.capacidades) {
+            html += `<div class="cap">· ${cap.codigo} (${cap.unidad_aprendizaje}) — ${cap.descripcion}</div>`;
+          }
+          html += `</div>`;
+        }
+        html += `</div>`;
+      }
+      $("#arbol").innerHTML = html;
+    }
+
+    $("#curso").addEventListener("change", loadArbol);
+
+    $("#add").addEventListener("click", async () => {
+      const entidad = $("#entidad").value;
+      const data = { codigo: $("#codigo").value.trim(), descripcion: $("#descripcion").value.trim() };
+      const ref = $("#ref").value.trim();
+      const unidad = $("#unidad").value.trim();
+      if (entidad === "competencias") { data.tipo = "técnica"; data.nivel = "avanzado"; }
+      if (entidad === "logros") { data.codigo_competencia = ref; }
+      if (entidad === "capacidades") { data.codigo_logro = ref; data.unidad_aprendizaje = unidad || "Sin unidad"; }
+      try {
+        await api(`/api/v1/cursos/${$("#curso").value}/${entidad}`, {
+          method: "POST", body: JSON.stringify(data),
+        });
+        ["#codigo", "#descripcion", "#ref", "#unidad"].forEach((s) => ($(s).value = ""));
+        await loadArbol();
+      } catch (e) { alert(e.message); }
+    });
+
+    (async () => {
+      await fillCursos($("#curso"));
+      await loadArbol();
+    })().catch((e) => alert(e.message));
+  </script>
+</body>
+</html>

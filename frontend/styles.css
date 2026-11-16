@@ -1,0 +1,23 @@
+* { box-sizing: border-box; }
+body { font-family: system-ui, Segoe UI, Arial, sans-serif; margin: 0; color: #1f2937; background: #f8fafc; }
+header { display: flex; align-items: center; gap: 24px; padding: 12px 20px; background: #1e3a8a; color: #fff; }
+header h1 { font-size: 18px; margin: 0; }
+header nav a { color: #c7d2fe; text-decoration: none; margin-right: 14px; font-weight: 600; }
+header nav a:hover { color: #fff; }
+main { max-width: 980px; margin: 20px auto; padding: 0 16px; }
+.card, section { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.field { margin-bottom: 12px; }
+label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+select, input, button { font: inherit; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; }
+button { background: #1e3a8a; color: #fff; border: none; cursor: pointer; font-weight: 600; }
+button:hover { background: #1e40af; }
+.comp { margin: 10px 0 0; padding-left: 10px; border-left: 3px solid #93c5fd; }
+.logro { margin: 8px 0 0 16px; padding-left: 10px; border-left: 3px solid #bfdbfe; }
+.cap { margin: 4px 0 0 28px; font-size: 14px; color: #374151; }
+.sel label { display: block; font-weight: 400; margin: 3px 0; }
+.sel .ind { margin-left: 20px; }
+.sel .ind2 { margin-left: 40px; font-size: 14px; color: #4b5563; }
+table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; vertical-align: top; }
+th { background: #eff6ff; }
+.msg { color: #b45309; font-weight: 600; }

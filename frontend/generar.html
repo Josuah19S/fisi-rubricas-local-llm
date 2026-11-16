@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Generar — Rúbricas FISI</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header>
+    <h1>Rúbricas FISI</h1>
+    <nav><a href="/">Registro</a><a href="/generar.html">Generar</a></nav>
+  </header>
+  <main>
+    <section>
+      <div class="field"><label for="curso">Curso</label><select id="curso"></select></div>
+
+      <h2>Selección de insumos</h2>
+      <div class="sel" id="sel"></div>
+
+      <div class="field"><label>Actividad</label><input id="actividad" placeholder="p. ej. Informe sobre árboles binarios"></div>
+      <div class="field">
+        <label>Tipo de entregable</label>
+        <select id="tipo">
+          <option value="informe">informe</option>
+          <option value="proyecto">proyecto</option>
+          <option value="exposicion">exposición</option>
+          <option value="codigo">código</option>
+        </select>
+      </div>
+      <div class="field"><label>Nº de criterios (3–8)</label><input id="nc" type="number" min="3" max="8" value="4"></div>
+      <button id="gen">Generar rúbrica</button>
+      <p class="msg" id="msg"></p>
+    </section>
+
+    <section id="resultado"></section>
+    <p>
+      <button id="exp-md" disabled>Exportar Markdown</button>
+      <button id="exp-xlsx" disabled>Exportar Excel (.xlsx)</button>
+    </p>
+  </main>
+
+  <script src="/static/app.js"></script>
+  <script>
+    let actual = null;
+
+    async function loadArbol() {
+      const id = $("#curso").value;
+      if (!id) return;
+      actual = await api(`/api/v1/cursos/${id}/arbol`);
+      let html = "";
+      for (const c of actual.competencias) {
+        html += `<label><input type="checkbox" class="comp" value="${c.codigo}" checked> <strong>${c.codigo}</strong> — ${c.descripcion}</label>`;
+        for (const l of c.logros) {
+          html += `<label class="ind"><input type="checkbox" class="logro" value="${l.codigo}" checked> ${l.codigo} — ${l.descripcion}</label>`;
+          for (const cap of l.capacidades) {
+            html += `<label class="ind2"><input type="checkbox" class="cap" value="${cap.codigo}" checked> ${cap.codigo} (${cap.unidad_aprendizaje})</label>`;
+          }
+        }
+      }
+      $("#sel").innerHTML = html;
+    }
+
+    const seleccion = (cls) => [...document.querySelectorAll("." + cls)].filter((x) => x.checked).map((x) => x.value);
+
+    $("#curso").addEventListener("change", loadArbol);
+
+    $("#gen").addEventListener("click", async () => {
+      const body = {
+        curso_id: $("#curso").value,
+        competencias: seleccion("comp"),
+        logros: seleccion("logro"),
+        capacidades: seleccion("cap"),
+        actividad: $("#actividad").value.trim() || "Actividad del curso",
+        tipo_entregable: $("#tipo").value,
+        num_criterios: parseInt($("#nc").value, 10),
+      };
+      $("#msg").textContent = "Generando… puede tardar ~100 s en CPU.";
+      $("#gen").disabled = true;
+      try {
+        const r = await api("/api/v1/rubricas", { method: "POST", body: JSON.stringify(body) });
+        window.rubrica = r;
+        render(r);
+        $("#msg").textContent = "";
+        $("#exp-md").disabled = false;
+        $("#exp-xlsx").disabled = false;
+      } catch (e) {
+        $("#msg").textContent = "Error: " + e.message;
+      } finally {
+        $("#gen").disabled = false;
+      }
+    });
+
+    function render(r) {
+      let html = `<h2>${r.titulo}</h2>`;
+      html += `<table><thead><tr><th>Criterio</th><th>Peso</th>${r.niveles.map((n) => `<th>${n}</th>`).join("")}</tr></thead><tbody>`;
+      for (const c of r.criterios) {
+        const por = {};
+        c.descriptores.forEach((d) => (por[d.nivel] = d));
+        html += `<tr><td>${c.nombre}</td><td>${c.peso}</td>` +
+          r.niveles.map((n) => `<td>${por[n] ? por[n].puntaje + " – " + por[n].descripcion : ""}</td>`).join("") +
+          `</tr>`;
+      }
+      html += `</tbody></table>`;
+      $("#resultado").innerHTML = html;
+    }
+
+    async function exportar(formato) {
+      if (!window.rubrica) return;
+      const res = await fetch(`/api/v1/export/${formato}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(window.rubrica),
+      });
+      if (!res.ok) { alert("Error exportando"); return; }
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = formato === "xlsx" ? "rubrica.xlsx" : "rubrica.md";
+      a.click();
+    }
+
+    $("#exp-md").addEventListener("click", () => exportar("md"));
+    $("#exp-xlsx").addEventListener("click", () => exportar("xlsx"));
+
+    (async () => {
+      await fillCursos($("#curso"));
+      await loadArbol();
+    })().catch((e) => alert(e.message));
+  </script>
+</body>
+</html>

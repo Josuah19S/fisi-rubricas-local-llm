@@ -1,0 +1,60 @@
+{
+  "curso": {
+    "id": "202W1005",
+    "nombre": "Tendencias de Arquitectura de Software",
+    "carrera": "Ingeniería de Software"
+  },
+  "competencias": [
+    {
+      "codigo": "CT8.3",
+      "descripcion": "Integra e implementa soluciones de diferentes tipos de software; utilizando metodologías, métodos, técnicas y herramientas de software basado en estándares de calidad.",
+      "tipo": "técnica",
+      "nivel": "avanzado"
+    }
+  ],
+  "logros": [
+    {
+      "codigo": "CT8.3-RA1",
+      "descripcion": "Diseñar soluciones de software que utilicen métodos y arquitecturas en tendencia, aplicando los conocimientos en diseño y arquitectura de software.",
+      "codigo_competencia": "CT8.3"
+    },
+    {
+      "codigo": "CT8.3-RA2",
+      "descripcion": "Desarrollar aplicaciones de software con arquitecturas y tecnologías en nube, utilizando tendencias de arquitecturas de software.",
+      "codigo_competencia": "CT8.3"
+    },
+    {
+      "codigo": "CT8.3-RA3",
+      "descripcion": "Integrar aplicaciones de software utilizando tecnologías en tendencia, a partir del desarrollo de pruebas de concepto y demos.",
+      "codigo_competencia": "CT8.3"
+    },
+    {
+      "codigo": "CT8.3-RA4",
+      "descripcion": "Identificar y proponer la utilización de plataformas de software en tendencia para la solución de problemas reales y proyectos.",
+      "codigo_competencia": "CT8.3"
+    }
+  ],
+  "capacidades": [
+    {
+      "codigo": "CT8.3-CAP1",
+      "descripcion": "Conocer las tendencias en Arquitectura de Software y Patrones, planificar el proyecto del curso y diseñar la solución utilizando las arquitecturas seleccionadas.",
+      "unidad_aprendizaje": "Unidad I"
+    },
+    {
+      "codigo": "CT8.3-CAP2",
+      "descripcion": "Entender las tecnologías de nube y su relación con las Arquitecturas en tendencia para desarrollar aplicaciones, demostrando trabajo en equipo y capacidad de análisis.",
+      "unidad_aprendizaje": "Unidad II"
+    },
+    {
+      "codigo": "CT8.3-CAP3",
+      "descripcion": "Identificar, proponer e integrar otras tecnologías y plataformas en tendencia para la Arquitectura de software, a través de su aplicación en problemas reales, demostrando pensamiento crítico.",
+      "unidad_aprendizaje": "Unidad III"
+    }
+  ],
+  "logro_capacidades": [
+    { "codigo_logro": "CT8.3-RA1", "codigo_capacidad": "CT8.3-CAP1" },
+    { "codigo_logro": "CT8.3-RA2", "codigo_capacidad": "CT8.3-CAP2" },
+    { "codigo_logro": "CT8.3-RA3", "codigo_capacidad": "CT8.3-CAP3" },
+    { "codigo_logro": "CT8.3-RA4", "codigo_capacidad": "CT8.3-CAP3" }
+  ]
+}
