@@ -7,117 +7,202 @@
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <header>
-    <h1>Rúbricas FISI</h1>
-    <nav><a href="/">Registro</a><a href="/generar.html">Generar</a></nav>
+  <header class="app-header">
+    <div class="brand"><span class="brand-mark">◆</span> Rúbricas FISI</div>
+    <nav class="nav-pills">
+      <a href="/">Registro</a>
+      <a class="active" href="/generar.html">Generar</a>
+    </nav>
+    <span id="health" class="health">…</span>
   </header>
-  <main>
-    <section>
-      <div class="field"><label for="curso">Curso</label><select id="curso"></select></div>
 
-      <h2>Selección de insumos</h2>
-      <div class="sel" id="sel"></div>
+  <main class="container">
+    <div class="grid-2">
+      <section class="card">
+        <div class="field">
+          <label for="curso">Curso</label>
+          <select id="curso"></select>
+        </div>
+        <div class="selhead">
+          <span class="count" id="count"></span>
+          <div class="segmented">
+            <button id="all">Todos</button>
+            <button id="none">Ninguno</button>
+          </div>
+        </div>
+        <div id="sel"></div>
+      </section>
 
-      <div class="field"><label>Actividad</label><input id="actividad" placeholder="p. ej. Informe sobre árboles binarios"></div>
-      <div class="field">
-        <label>Tipo de entregable</label>
-        <select id="tipo">
-          <option value="informe">informe</option>
-          <option value="proyecto">proyecto</option>
-          <option value="exposicion">exposición</option>
-          <option value="codigo">código</option>
-        </select>
-      </div>
-      <div class="field"><label>Nº de criterios (3–8)</label><input id="nc" type="number" min="3" max="8" value="4"></div>
-      <button id="gen">Generar rúbrica</button>
-      <p class="msg" id="msg"></p>
-    </section>
+      <aside class="card stack sticky">
+        <h2>Parámetros</h2>
+        <div class="field"><label>Actividad</label><input id="actividad" placeholder="p. ej. Informe sobre árboles binarios"></div>
+        <div class="field">
+          <label>Tipo de entregable</label>
+          <select id="tipo">
+            <option value="informe">informe</option>
+            <option value="proyecto">proyecto</option>
+            <option value="exposicion">exposición</option>
+            <option value="codigo">código</option>
+          </select>
+        </div>
+        <div class="field"><label>Nº de criterios (3–8)</label><input id="nc" type="number" min="3" max="8" value="4"></div>
+        <button id="gen" class="btn-primary btn-block">Generar rúbrica</button>
+        <div id="status" class="status hidden">
+          <div class="status-line"><span id="spin" class="spinner hidden"></span><span id="phase"></span></div>
+          <div id="progress" class="progress-track hidden"><span></span></div>
+        </div>
+      </aside>
+    </div>
 
-    <section id="resultado"></section>
-    <p>
-      <button id="exp-md" disabled>Exportar Markdown</button>
-      <button id="exp-xlsx" disabled>Exportar Excel (.xlsx)</button>
-    </p>
+    <section id="resultado" class="card hidden"></section>
+
+    <div class="export-buttons">
+      <button id="exp-md" class="btn-ghost" disabled>Exportar Markdown</button>
+      <button id="exp-xlsx" class="btn-ghost" disabled>Exportar Excel (.xlsx)</button>
+    </div>
+
+    <details class="card log-drawer">
+      <summary>Logs</summary>
+      <div id="log" class="log"></div>
+    </details>
   </main>
 
   <script src="/static/app.js"></script>
   <script>
-    let actual = null;
+    let timerId = null;
+
+    function updateCount() {
+      const boxes = [...document.querySelectorAll("#sel input[type=checkbox]")];
+      const on = boxes.filter((b) => b.checked).length;
+      $("#count").textContent = `${on}/${boxes.length} seleccionados`;
+    }
 
     async function loadArbol() {
       const id = $("#curso").value;
       if (!id) return;
-      actual = await api(`/api/v1/cursos/${id}/arbol`);
+      logLine(`cargando insumos de ${id}…`);
+      const a = await api(`/api/v1/cursos/${id}/arbol`);
       let html = "";
-      for (const c of actual.competencias) {
-        html += `<label><input type="checkbox" class="comp" value="${c.codigo}" checked> <strong>${c.codigo}</strong> — ${c.descripcion}</label>`;
+      for (const c of a.competencias) {
+        html += `<div class="sel-group">
+          <label><input type="checkbox" class="comp" value="${c.codigo}" checked>
+            <span class="chip chip--comp">${c.codigo}</span> <span>${c.descripcion}</span></label>`;
         for (const l of c.logros) {
-          html += `<label class="ind"><input type="checkbox" class="logro" value="${l.codigo}" checked> ${l.codigo} — ${l.descripcion}</label>`;
+          html += `<label class="ind"><input type="checkbox" class="logro" value="${l.codigo}" checked>
+            <span class="chip chip--logro">${l.codigo}</span> <span>${l.descripcion}</span></label>`;
           for (const cap of l.capacidades) {
-            html += `<label class="ind2"><input type="checkbox" class="cap" value="${cap.codigo}" checked> ${cap.codigo} (${cap.unidad_aprendizaje})</label>`;
+            html += `<label class="ind2"><input type="checkbox" class="cap" value="${cap.codigo}" checked>
+              <span class="chip chip--cap">${cap.codigo}</span> <span>${cap.unidad_aprendizaje}</span></label>`;
           }
         }
+        html += `</div>`;
       }
       $("#sel").innerHTML = html;
+      $("#sel").querySelectorAll("input").forEach((b) => b.addEventListener("change", updateCount));
+      updateCount();
+      logLine("insumos cargados");
     }
 
     const seleccion = (cls) => [...document.querySelectorAll("." + cls)].filter((x) => x.checked).map((x) => x.value);
 
-    $("#curso").addEventListener("change", loadArbol);
+    function setStatus(kind, html, busy = false) {
+      const el = $("#status");
+      el.className = "status" + (kind ? " " + kind : "");
+      el.classList.remove("hidden");
+      $("#phase").innerHTML = html;
+      $("#spin").classList.toggle("hidden", !busy);
+      $("#progress").classList.toggle("hidden", !busy);
+    }
+
+    function validate() {
+      if (!$("#actividad").value.trim()) return "La actividad es obligatoria.";
+      const nc = parseInt($("#nc").value, 10);
+      if (!Number.isInteger(nc) || nc < 3 || nc > 8) return "Nº de criterios debe ser un entero entre 3 y 8.";
+      if (seleccion("comp").length === 0) return "Selecciona al menos una competencia.";
+      return null;
+    }
+
+    $("#all").addEventListener("click", () => { document.querySelectorAll("#sel input").forEach((b) => (b.checked = true)); updateCount(); });
+    $("#none").addEventListener("click", () => { document.querySelectorAll("#sel input").forEach((b) => (b.checked = false)); updateCount(); });
+    $("#curso").addEventListener("change", () => loadArbol().catch((e) => logLine("error: " + e.message, "error")));
 
     $("#gen").addEventListener("click", async () => {
+      const err = validate();
+      if (err) { setStatus("error", "✗ " + err); logLine(err, "warn"); return; }
+
       const body = {
         curso_id: $("#curso").value,
         competencias: seleccion("comp"),
         logros: seleccion("logro"),
         capacidades: seleccion("cap"),
-        actividad: $("#actividad").value.trim() || "Actividad del curso",
+        actividad: $("#actividad").value.trim(),
         tipo_entregable: $("#tipo").value,
         num_criterios: parseInt($("#nc").value, 10),
       };
-      $("#msg").textContent = "Generando… puede tardar ~100 s en CPU.";
+      logLine("generar " + JSON.stringify({ curso: body.curso_id, crit: body.num_criterios }));
+
       $("#gen").disabled = true;
+      const t0 = Date.now();
+      setStatus("", "Generando… 0s", true);
+      timerId = setInterval(() => {
+        const p = document.getElementById("phase");
+        if (p) p.textContent = `Generando… ${Math.round((Date.now() - t0) / 1000)}s`;
+      }, 1000);
+
       try {
-        const r = await api("/api/v1/rubricas", { method: "POST", body: JSON.stringify(body) });
+        const res = await fetch("/api/v1/rubricas", {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+        });
+        const rid = res.headers.get("X-Request-ID") || "-";
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({ detail: res.statusText }));
+          throw Object.assign(new Error(`${res.status} — ${j.detail || res.statusText}`), { status: res.status, requestId: rid });
+        }
+        const r = await res.json();
         window.rubrica = r;
         render(r);
-        $("#msg").textContent = "";
         $("#exp-md").disabled = false;
         $("#exp-xlsx").disabled = false;
+        const seg = res.headers.get("X-Elapsed-Ms") ? (parseInt(res.headers.get("X-Elapsed-Ms"), 10) / 1000).toFixed(1) : ((Date.now() - t0) / 1000).toFixed(1);
+        setStatus("ok", `✓ Rúbrica generada en ${seg}s · ${res.headers.get("X-Tokens")} tokens · ${res.headers.get("X-Attempts")} intento(s)`);
+        logLine(`→ 200 en ${seg}s · tokens=${res.headers.get("X-Tokens")} · intentos=${res.headers.get("X-Attempts")} · rid=${rid}`);
       } catch (e) {
-        $("#msg").textContent = "Error: " + e.message;
+        setStatus("error", `✗ ${e.message} <small>(rid ${e.requestId || "-"})</small>`);
+        logLine(`→ ERROR ${e.status || ""} ${e.message} rid=${e.requestId || "-"}`, "error");
       } finally {
+        clearInterval(timerId);
         $("#gen").disabled = false;
       }
     });
 
     function render(r) {
-      let html = `<h2>${r.titulo}</h2>`;
-      html += `<table><thead><tr><th>Criterio</th><th>Peso</th>${r.niveles.map((n) => `<th>${n}</th>`).join("")}</tr></thead><tbody>`;
+      let html = `<h2>${r.titulo}</h2><div class="table-wrap"><table>`;
+      html += `<thead><tr><th>Criterio</th><th>Peso</th>${r.niveles.map((n) => `<th>${n}</th>`).join("")}</tr></thead><tbody>`;
       for (const c of r.criterios) {
         const por = {};
         c.descriptores.forEach((d) => (por[d.nivel] = d));
-        html += `<tr><td>${c.nombre}</td><td>${c.peso}</td>` +
-          r.niveles.map((n) => `<td>${por[n] ? por[n].puntaje + " – " + por[n].descripcion : ""}</td>`).join("") +
+        html += `<tr><td><strong>${c.nombre}</strong></td><td><span class="score">${c.peso}</span></td>` +
+          r.niveles.map((n) => `<td>${por[n] ? `<span class="score">${por[n].puntaje}</span>${por[n].descripcion}` : ""}</td>`).join("") +
           `</tr>`;
       }
-      html += `</tbody></table>`;
-      $("#resultado").innerHTML = html;
+      html += `</tbody></table></div>`;
+      const box = $("#resultado");
+      box.innerHTML = html;
+      box.classList.remove("hidden");
     }
 
     async function exportar(formato) {
       if (!window.rubrica) return;
       const res = await fetch(`/api/v1/export/${formato}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(window.rubrica),
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(window.rubrica),
       });
-      if (!res.ok) { alert("Error exportando"); return; }
+      if (!res.ok) { logLine("error export " + formato, "error"); alert("Error exportando"); return; }
       const blob = await res.blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = formato === "xlsx" ? "rubrica.xlsx" : "rubrica.md";
       a.click();
+      logLine("export " + formato + " ok");
     }
 
     $("#exp-md").addEventListener("click", () => exportar("md"));
@@ -126,7 +211,7 @@
     (async () => {
       await fillCursos($("#curso"));
       await loadArbol();
-    })().catch((e) => alert(e.message));
+    })().catch((e) => logLine("error: " + e.message, "error"));
   </script>
 </body>
 </html>

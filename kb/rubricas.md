@@ -1,8 +1,3 @@
----
-version: 0.1
-fecha: 2026-11-09
----
-
 # Base de conocimientos — Rúbricas FISI
 
 ## Niveles de logro (4 fijos)

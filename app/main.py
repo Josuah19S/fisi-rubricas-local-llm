@@ -1,9 +1,14 @@
 import hashlib
 import io
+import logging
+import os
+import threading
+import time
+import uuid
 from pathlib import Path
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from openpyxl import Workbook
@@ -11,11 +16,32 @@ from openpyxl import Workbook
 from . import db, llm_client, prompt, schemas
 from .schemas import RubricaRequest
 
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"),
+                    format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+log = logging.getLogger("rubricas")
+
 BASE = Path(__file__).resolve().parent.parent
 FRONTEND = BASE / "frontend"
 
 app = FastAPI(title="Rúbricas FISI")
 db.init_db()
+
+# Precarga el modelo en segundo plano para que la 1ra petición no pague la carga.
+threading.Thread(target=llm_client.warm_up, daemon=True).start()
+
+
+@app.middleware("http")
+async def _log_requests(request: Request, call_next):
+    rid = uuid.uuid4().hex[:8]
+    request.state.request_id = rid
+    t0 = time.perf_counter()
+    response = await call_next(request)
+    if request.url.path.startswith("/api"):
+        dur = time.perf_counter() - t0
+        response.headers["X-Request-ID"] = rid
+        log.info("%s %s -> %s %.2fs rid=%s", request.method, request.url.path,
+                 response.status_code, dur, rid)
+    return response
 
 # Registros agregados por UI: solo viven en memoria (no se persisten).
 EXTRA = {"competencias": [], "logros": [], "capacidades": []}
@@ -100,22 +126,34 @@ def agregar(curso_id: str, entidad: str, data: dict):
 
 
 @app.post("/api/v1/rubricas")
-def rubricas(req: RubricaRequest):
+def rubricas(req: RubricaRequest, request: Request, response: Response):
+    t0 = time.perf_counter()
+    rid = getattr(request.state, "request_id", "-")
     arbol = _arbol(req.curso_id)
     messages = prompt.build_messages(req, _contexto(arbol, req))
     schema = schemas.build_output_schema(req.num_criterios)
 
     ultimo_error = None
-    for _ in range(3):  # 1 intento + 2 reintentos
+    for intento in range(1, 4):  # 1 intento + 2 reintentos
         try:
-            data, _meta = llm_client.generate(messages, schema)
-            return schemas.validate_and_normalize(data, req.num_criterios)
+            data, meta = llm_client.generate(messages, schema)
+            result = schemas.validate_and_normalize(data, req.num_criterios)
+            elapsed = time.perf_counter() - t0
+            response.headers["X-Elapsed-Ms"] = str(int(elapsed * 1000))
+            response.headers["X-Tokens"] = str(meta.get("eval_count") or 0)
+            response.headers["X-Attempts"] = str(intento)
+            log.info("rubrica OK curso=%s crit=%s tok=%s intentos=%s %.1fs rid=%s",
+                     req.curso_id, req.num_criterios, meta.get("eval_count"), intento, elapsed, rid)
+            return result
         except llm_client.LLMUnavailable as e:
+            log.error("Ollama no disponible rid=%s: %s", rid, e)
             raise HTTPException(503, str(e))
         except llm_client.LLMTimeout as e:
+            log.error("Timeout de generación rid=%s: %s", rid, e)
             raise HTTPException(504, str(e))
         except ValueError as e:
             ultimo_error = str(e)
+            log.warning("intento %s inválido rid=%s: %s", intento, rid, e)
             continue
     raise HTTPException(422, f"Salida inválida tras reintentos: {ultimo_error}")
 
